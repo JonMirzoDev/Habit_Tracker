@@ -3,6 +3,7 @@
 import 'package:flutter/material.dart';
 import 'package:habit_tracker/components/my_drawer.dart';
 import 'package:habit_tracker/components/my_habit_tile.dart';
+import 'package:habit_tracker/components/my_heat_map.dart';
 import 'package:habit_tracker/database/habit_database.dart';
 import 'package:habit_tracker/models/habit.dart';
 import 'package:habit_tracker/util/habit_util.dart';
@@ -127,7 +128,11 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.background,
-      appBar: AppBar(),
+      appBar: AppBar(
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        foregroundColor: Theme.of(context).colorScheme.inversePrimary,
+      ),
       drawer: const MyDrawer(),
       floatingActionButton: FloatingActionButton(
         onPressed: createNewHabit,
@@ -138,8 +143,31 @@ class _HomePageState extends State<HomePage> {
           color: Colors.black,
         ),
       ),
-      body: _buildHabitList(),
+      body: ListView(
+        children: [
+          _buildHeatMap(),
+          _buildHabitList(),
+        ],
+      ),
     );
+  }
+
+  Widget _buildHeatMap() {
+    final habitDatabase = context.watch<HabitDatabase>();
+
+    List<Habit> currentHabits = habitDatabase.currentHabits;
+
+    return FutureBuilder<DateTime?>(
+        future: habitDatabase.getFirstLaunchDate(),
+        builder: (context, snapshot) {
+          if (snapshot.hasData) {
+            return MyHeatMap(
+                startDate: snapshot.data!,
+                datasets: prepHeatMapDataset(currentHabits));
+          } else {
+            return Container();
+          }
+        });
   }
 
   Widget _buildHabitList() {
@@ -149,6 +177,8 @@ class _HomePageState extends State<HomePage> {
 
     return ListView.builder(
         itemCount: currentHabits.length,
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
         itemBuilder: (context, index) {
           final habit = currentHabits[index];
 
